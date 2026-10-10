@@ -1,0 +1,186 @@
+{
+  "realm": "wager",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 900,
+  "roles": {
+    "realm": [
+      {
+        "name": "provider",
+        "description": "Provedor externo autorizado a enviar transações de aposta"
+      },
+      {
+        "name": "wallet-internal",
+        "description": "Acesso interno às rotas de carteira e ledger"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "provider-alpha",
+      "name": "provider-alpha",
+      "description": "Provedor de teste A (provider_id = provider-alpha)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "provider-alpha-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "audience-wager-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "wager-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "provider-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "provider_id",
+            "claim.value": "provider-alpha",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "provider-beta",
+      "name": "provider-beta",
+      "description": "Provedor de teste B (provider_id = provider-beta)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "provider-beta-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "audience-wager-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "wager-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "provider-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "provider_id",
+            "claim.value": "provider-beta",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "wallet-internal-client",
+      "name": "wallet-internal-client",
+      "description": "Cliente interno com acesso às rotas de carteira",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "wallet-internal-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "audience-wager-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "wager-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "unprivileged-client",
+      "name": "unprivileged-client",
+      "description": "Token válido, mas sem nenhum role: usado para testar respostas 403",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "unprivileged-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "audience-wager-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "wager-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-provider-alpha",
+      "enabled": true,
+      "serviceAccountClientId": "provider-alpha",
+      "realmRoles": [
+        "provider"
+      ]
+    },
+    {
+      "username": "service-account-provider-beta",
+      "enabled": true,
+      "serviceAccountClientId": "provider-beta",
+      "realmRoles": [
+        "provider"
+      ]
+    },
+    {
+      "username": "service-account-wallet-internal-client",
+      "enabled": true,
+      "serviceAccountClientId": "wallet-internal-client",
+      "realmRoles": [
+        "wallet-internal"
+      ]
+    },
+    {
+      "username": "service-account-unprivileged-client",
+      "enabled": true,
+      "serviceAccountClientId": "unprivileged-client",
+      "realmRoles": []
+    }
+  ]
+}
