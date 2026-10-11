@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PBelle451/backend-challenge-go/migrations"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -12,7 +13,7 @@ import (
 )
 
 // LedgerRepo persiste os lançamentos do ledger (append-only).
-type LedgerRepo struct{ q DBTX }
+type LedgerRepo struct{ q migrations.DBTX }
 
 const ledgerColumns = `id, wallet_id, transaction_id, direction, currency, amount, balance_before, balance_after, wallet_version, created_at`
 

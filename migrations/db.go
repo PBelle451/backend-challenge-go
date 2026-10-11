@@ -4,7 +4,7 @@
 // em READ COMMITTED, com lock pessimista por carteira (SELECT ... FOR UPDATE) e
 // lock_timeout. Domínio, ledger, inbox e outbox são gravados juntos e confirmados
 // juntos; o schema reforça as invariantes financeiras no commit.
-package postgres
+package migrations
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/PBelle451/backend-challenge-go/internal/infra/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -80,17 +81,17 @@ func NewPool(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 
 // Repositories reúne os repositórios ligados à mesma transação (ou ao pool, para leituras).
 type Repositories struct {
-	Wallets      *WalletRepo
-	Transactions *TransactionRepo
-	Ledger       *LedgerRepo
+	Wallets      *postgres.WalletRepo
+	Transactions *postgres.TransactionRepo
+	Ledger       *postgres.LedgerRepo
 }
 
 // NewRepositories liga os repositórios a q.
 func NewRepositories(q DBTX) Repositories {
 	return Repositories{
-		Wallets:      &WalletRepo{q: q},
-		Transactions: &TransactionRepo{q: q},
-		Ledger:       &LedgerRepo{q: q},
+		Wallets:      &postgres.WalletRepo{q: q},
+		Transactions: &postgres.TransactionRepo{q: q},
+		Ledger:       &postgres.LedgerRepo{q: q},
 	}
 }
 
@@ -120,7 +121,7 @@ func (m *TxManager) Do(ctx context.Context, fn func(ctx context.Context, r Repos
 	var err error
 	for attempt := 0; ; attempt++ {
 		err = m.once(ctx, fn)
-		if err == nil || !isRetryableTx(err) {
+		if err == nil || !postgres.isRetryableTx(err) {
 			return err
 		}
 		if attempt >= m.cfg.MaxTxRetries {
@@ -161,7 +162,7 @@ func (m *TxManager) once(ctx context.Context, fn func(ctx context.Context, r Rep
 		return err
 	}
 	if err = tx.Commit(ctx); err != nil {
-		return mapError(err) // violações das checagens do commit (ledger x carteira) chegam aqui
+		return postgres.mapError(err) // violações das checagens do commit (ledger x carteira) chegam aqui
 	}
 	committed = true
 	return nil

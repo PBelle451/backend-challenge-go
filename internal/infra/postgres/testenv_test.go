@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PBelle451/backend-challenge-go/migrations"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"github.com/PBelle451/backend-challenge-go/internal/infra/postgres"
 )
 
 // Os testes de integração usam um PostgreSQL REAL (o do docker-compose), sem mocks.
@@ -32,10 +31,10 @@ func adminURL() string {
 
 type testEnv struct {
 	Pool *pgxpool.Pool
-	TM   *postgres.TxManager
+	TM   *migrations.TxManager
 }
 
-func newEnv(t *testing.T, mod func(*postgres.Config)) *testEnv {
+func newEnv(t *testing.T, mod func(*migrations.Config)) *testEnv {
 	t.Helper()
 	ctx := context.Background()
 
@@ -66,11 +65,11 @@ func newEnv(t *testing.T, mod func(*postgres.Config)) *testEnv {
 		t.Fatal(err)
 	}
 	u.Path = "/" + name
-	cfg := postgres.Config{URL: u.String(), MaxConns: 40}
+	cfg := migrations.Config{URL: u.String(), MaxConns: 40}
 	if mod != nil {
 		mod(&cfg)
 	}
-	pool, err := postgres.NewPool(ctx, cfg)
+	pool, err := migrations.NewPool(ctx, cfg)
 	if err != nil {
 		t.Fatalf("NewPool: %v", err)
 	}
@@ -94,5 +93,5 @@ func newEnv(t *testing.T, mod func(*postgres.Config)) *testEnv {
 			t.Fatalf("aplicando %s: %v", f, err)
 		}
 	}
-	return &testEnv{Pool: pool, TM: postgres.NewTxManager(pool, cfg)}
+	return &testEnv{Pool: pool, TM: migrations.NewTxManager(pool, cfg)}
 }

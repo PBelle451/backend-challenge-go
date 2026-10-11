@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PBelle451/backend-challenge-go/migrations"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -14,7 +15,7 @@ import (
 )
 
 // TransactionRepo persiste as transações financeiras (WagerTransaction).
-type TransactionRepo struct{ q DBTX }
+type TransactionRepo struct{ q migrations.DBTX }
 
 const txColumns = `id, kind, status, wallet_id, player_id, currency, amount,
 	provider_id, external_transaction_id, idempotency_key, payload_hash, round_id, game_id,
