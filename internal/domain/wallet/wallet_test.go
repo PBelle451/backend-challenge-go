@@ -382,3 +382,25 @@ func TestTimesAreStoredInUTC(t *testing.T) {
 		t.Errorf("CreatedAt = %v (%v)", w.CreatedAt(), w.CreatedAt().Location())
 	}
 }
+
+func TestMarkPersisted(t *testing.T) {
+	w := openWallet(t, "100.00")
+	if w.LoadedVersion() != 0 {
+		t.Fatalf("a freshly opened wallet is not persisted: LoadedVersion = %d", w.LoadedVersion())
+	}
+	w.MarkPersisted()
+	if w.LoadedVersion() != 1 || w.Version() != 1 {
+		t.Errorf("after the INSERT: loaded %d version %d", w.LoadedVersion(), w.Version())
+	}
+
+	if _, err := w.Debit(mv(t, 1, "10.00")); err != nil {
+		t.Fatal(err)
+	}
+	if w.LoadedVersion() != 1 || w.Version() != 2 {
+		t.Errorf("a movement must not touch LoadedVersion: loaded %d version %d", w.LoadedVersion(), w.Version())
+	}
+	w.MarkPersisted() // o repositório confirmou o UPDATE
+	if w.LoadedVersion() != 2 {
+		t.Errorf("after the UPDATE: loaded %d, want 2", w.LoadedVersion())
+	}
+}

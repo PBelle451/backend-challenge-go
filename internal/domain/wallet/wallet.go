@@ -220,6 +220,10 @@ func (w *Wallet) Version() int64           { return w.version }
 func (w *Wallet) CreatedAt() time.Time     { return w.createdAt }
 func (w *Wallet) UpdatedAt() time.Time     { return w.updatedAt }
 
+// MarkPersisted registra que o estado atual foi gravado com sucesso: a versão
+// lida passa a ser a versão corrente. Chamado pelo repositório após INSERT/UPDATE.
+func (w *Wallet) MarkPersisted() { w.loadedVersion = w.version }
+
 // LoadedVersion é a versão lida do armazenamento (0 para uma carteira ainda não
 // persistida). O repositório a usa no UPDATE condicional (WHERE version = loaded).
 func (w *Wallet) LoadedVersion() int64 { return w.loadedVersion }
