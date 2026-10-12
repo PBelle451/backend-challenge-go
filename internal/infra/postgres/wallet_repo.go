@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/PBelle451/backend-challenge-go/migrations"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -15,7 +14,7 @@ import (
 )
 
 // WalletRepo persiste carteiras.
-type WalletRepo struct{ q migrations.DBTX }
+type WalletRepo struct{ q DBTX }
 
 const walletColumns = `id, player_id, currency, balance, version, created_at, updated_at`
 

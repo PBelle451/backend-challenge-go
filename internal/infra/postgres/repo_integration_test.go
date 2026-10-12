@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PBelle451/backend-challenge-go/migrations"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -83,7 +82,7 @@ func TestNotFound(t *testing.T) {
 func TestWalletWithoutOpeningEntryIsRejectedAtCommit(t *testing.T) {
 	env := newEnv(t, nil)
 	walletID := uuid.New()
-	err := env.TM.Do(context.Background(), func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(context.Background(), func(ctx context.Context, r postgres.Repositories) error {
 		w, _, err := wallet.Open(wallet.OpenParams{
 			WalletID: walletID, PlayerID: uuid.New(), InitialBalance: brl(t, "100.00"),
 			OpeningTransactionID: uuid.New(), OpeningEntryID: uuid.New(), Now: t0,
@@ -106,7 +105,7 @@ func TestBalanceChangeWithoutLedgerEntryIsRolledBack(t *testing.T) {
 	env := newEnv(t, nil)
 	walletID, _ := openWallet(t, env, "100.00")
 
-	err := env.TM.Do(context.Background(), func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(context.Background(), func(ctx context.Context, r postgres.Repositories) error {
 		w, err := r.Wallets.GetForUpdate(ctx, walletID)
 		if err != nil {
 			return err
@@ -129,7 +128,7 @@ func TestDo_RollsBackOnError(t *testing.T) {
 	env := newEnv(t, nil)
 	walletID := uuid.New()
 	boom := errors.New("boom")
-	err := env.TM.Do(context.Background(), func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(context.Background(), func(ctx context.Context, r postgres.Repositories) error {
 		w, _, _ := wallet.Open(wallet.OpenParams{WalletID: walletID, PlayerID: uuid.New(), InitialBalance: brl(t, "0.00"), Now: t0})
 		if err := r.Wallets.Insert(ctx, w); err != nil {
 			return err
@@ -147,7 +146,7 @@ func TestDo_RollsBackOnError(t *testing.T) {
 func TestWalletUniquePerPlayerAndCurrency(t *testing.T) {
 	env := newEnv(t, nil)
 	_, playerID := openWallet(t, env, "0.00")
-	err := env.TM.Do(context.Background(), func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(context.Background(), func(ctx context.Context, r postgres.Repositories) error {
 		w, _, _ := wallet.Open(wallet.OpenParams{WalletID: uuid.New(), PlayerID: playerID, InitialBalance: brl(t, "0.00"), Now: t0})
 		return r.Wallets.Insert(ctx, w)
 	})
@@ -162,7 +161,7 @@ func TestInsertTransaction_TypedConstraintErrors(t *testing.T) {
 	ctx := context.Background()
 
 	insert := func(tx *wager.Transaction) error {
-		return env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { return r.Transactions.Insert(ctx, tx) })
+		return env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { return r.Transactions.Insert(ctx, tx) })
 	}
 	first := newExternal(t, uuid.New(), wager.KindBet, walletID, playerID, "tx-1", "10.00", "", t0)
 	if err := insert(first); err != nil {
@@ -202,7 +201,7 @@ func TestSecondOpeningForTheSameWalletIsRejected(t *testing.T) {
 	env := newEnv(t, nil)
 	walletID, playerID := openWallet(t, env, "100.00")
 	opening, _ := wager.NewOpening(wager.NewOpeningParams{ID: uuid.New(), WalletID: walletID, PlayerID: playerID, Amount: brl(t, "5.00"), Now: t0})
-	err := env.TM.Do(context.Background(), func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(context.Background(), func(ctx context.Context, r postgres.Repositories) error {
 		return r.Transactions.Insert(ctx, opening)
 	})
 	if !errors.Is(err, postgres.ErrOpeningExists) {
@@ -242,7 +241,7 @@ func TestTransactionRoundTrip_AllStates(t *testing.T) {
 	}
 
 	all := []*wager.Transaction{pending, waiting, rejected, failed, processed}
-	if err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error {
+	if err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error {
 		for _, tx := range all {
 			if err := r.Transactions.Insert(ctx, tx); err != nil {
 				return err
@@ -287,7 +286,7 @@ func TestSaveTransaction_StateConflictWhenAlreadyTerminal(t *testing.T) {
 	ctx := context.Background()
 
 	tx := newExternal(t, uuid.New(), wager.KindBet, walletID, playerID, "tx-1", "10.00", "", t0)
-	if err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { return r.Transactions.Insert(ctx, tx) }); err != nil {
+	if err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { return r.Transactions.Insert(ctx, tx) }); err != nil {
 		t.Fatal(err)
 	}
 	// duas "instâncias" leram a mesma transação pendente
@@ -300,10 +299,10 @@ func TestSaveTransaction_StateConflictWhenAlreadyTerminal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { return r.Transactions.Save(ctx, a) }); err != nil {
+	if err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { return r.Transactions.Save(ctx, a) }); err != nil {
 		t.Fatalf("first save: %v", err)
 	}
-	err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { return r.Transactions.Save(ctx, b) })
+	err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { return r.Transactions.Save(ctx, b) })
 	if !errors.Is(err, postgres.ErrStateConflict) {
 		t.Fatalf("second save: error = %v, want ErrStateConflict", err)
 	}
@@ -325,7 +324,7 @@ func TestWalletSave_StaleVersionConflicts(t *testing.T) {
 	if _, err := stale.Debit(wallet.MovementParams{EntryID: uuid.New(), TransactionID: uuid.New(), Amount: brl(t, "10.00"), Now: t0.Add(time.Second)}); err != nil {
 		t.Fatal(err)
 	}
-	err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { return r.Wallets.Save(ctx, stale) })
+	err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { return r.Wallets.Save(ctx, stale) })
 	if !errors.Is(err, postgres.ErrVersionConflict) {
 		t.Fatalf("error = %v, want ErrVersionConflict", err)
 	}
@@ -454,7 +453,7 @@ func TestReversalUniqueness(t *testing.T) {
 	}
 
 	reverse := func(kind wager.Kind, ext string) error {
-		return env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error {
+		return env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error {
 			tx := newExternal(t, uuid.New(), kind, walletID, playerID, ext, "10.00", "bet-1", t0)
 			if err := r.Transactions.Insert(ctx, tx); err != nil {
 				return err
@@ -485,7 +484,7 @@ func TestClaimDue_SkipLockedGivesDisjointBatches(t *testing.T) {
 
 	for i := 0; i < 6; i++ {
 		tx := newExternal(t, uuid.New(), wager.KindBet, walletID, playerID, "p-"+string(rune('a'+i)), "1.00", "", t0)
-		if err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { return r.Transactions.Insert(ctx, tx) }); err != nil {
+		if err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { return r.Transactions.Insert(ctx, tx) }); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -500,7 +499,7 @@ func TestClaimDue_SkipLockedGivesDisjointBatches(t *testing.T) {
 	wg.Add(1)
 	go func() { // worker A: reivindica 3 e SEGURA a transação aberta
 		defer wg.Done()
-		_ = env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error {
+		_ = env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error {
 			got, err := r.Transactions.ClaimDue(ctx, t0.Add(time.Second), 3)
 			if err != nil {
 				t.Error(err)
@@ -513,7 +512,7 @@ func TestClaimDue_SkipLockedGivesDisjointBatches(t *testing.T) {
 	a := <-claimed
 
 	var b []*wager.Transaction
-	if err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { // worker B enquanto A segura os locks
+	if err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { // worker B enquanto A segura os locks
 		var err error
 		b, err = r.Transactions.ClaimDue(ctx, t0.Add(time.Second), 10)
 		return err
@@ -538,7 +537,7 @@ func TestClaimDue_SkipLockedGivesDisjointBatches(t *testing.T) {
 	if err := done.Reject(wager.FailureInsufficientFunds, t0.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	if err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { return r.Transactions.Save(ctx, done) }); err != nil {
+	if err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { return r.Transactions.Save(ctx, done) }); err != nil {
 		t.Fatal(err)
 	}
 	rest, _ := env.TM.Reader().Transactions.ClaimDue(ctx, t0.Add(time.Hour), 10)
@@ -548,7 +547,7 @@ func TestClaimDue_SkipLockedGivesDisjointBatches(t *testing.T) {
 }
 
 func TestLockTimeout_IsTransient(t *testing.T) {
-	env := newEnv(t, func(c *migrations.Config) { c.LockTimeout = 300 * time.Millisecond })
+	env := newEnv(t, func(c *postgres.Config) { c.LockTimeout = 300 * time.Millisecond })
 	walletID, _ := openWallet(t, env, "100.00")
 	ctx := context.Background()
 
@@ -558,7 +557,7 @@ func TestLockTimeout_IsTransient(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_ = env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error {
+		_ = env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error {
 			if _, err := r.Wallets.GetForUpdate(ctx, walletID); err != nil {
 				t.Error(err)
 			}
@@ -570,7 +569,7 @@ func TestLockTimeout_IsTransient(t *testing.T) {
 	<-holding
 
 	start := time.Now()
-	err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error {
 		_, err := r.Wallets.GetForUpdate(ctx, walletID)
 		return err
 	})
@@ -591,12 +590,12 @@ func TestLockTimeout_IsTransient(t *testing.T) {
 }
 
 func TestDo_RetriesDeadlockAndSerializationFailures(t *testing.T) {
-	env := newEnv(t, func(c *migrations.Config) { c.MaxTxRetries = 3 })
+	env := newEnv(t, func(c *postgres.Config) { c.MaxTxRetries = 3 })
 	ctx := context.Background()
 
 	for _, code := range []string{"40001", "40P01"} {
 		attempts := 0
-		err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error {
+		err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error {
 			attempts++
 			if attempts < 3 {
 				return &pgconn.PgError{Code: code}
@@ -610,7 +609,7 @@ func TestDo_RetriesDeadlockAndSerializationFailures(t *testing.T) {
 
 	// esgotou as repetições: 1 tentativa + 3 repetições
 	attempts := 0
-	err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error {
 		attempts++
 		return &pgconn.PgError{Code: "40001"}
 	})
@@ -621,7 +620,7 @@ func TestDo_RetriesDeadlockAndSerializationFailures(t *testing.T) {
 	// erro não repetível: devolvido na hora
 	attempts = 0
 	boom := errors.New("boom")
-	if err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error { attempts++; return boom }); !errors.Is(err, boom) || attempts != 1 {
+	if err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error { attempts++; return boom }); !errors.Is(err, boom) || attempts != 1 {
 		t.Errorf("non-retryable: attempts=%d err=%v", attempts, err)
 	}
 }
@@ -630,7 +629,7 @@ func TestDo_CanceledContextRollsBack(t *testing.T) {
 	env := newEnv(t, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	walletID := uuid.New()
-	err := env.TM.Do(ctx, func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(ctx, func(ctx context.Context, r postgres.Repositories) error {
 		w, _, _ := wallet.Open(wallet.OpenParams{WalletID: walletID, PlayerID: uuid.New(), InitialBalance: brl(t, "0.00"), Now: t0})
 		if err := r.Wallets.Insert(ctx, w); err != nil {
 			return err

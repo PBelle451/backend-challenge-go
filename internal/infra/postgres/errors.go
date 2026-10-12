@@ -24,6 +24,9 @@ var (
 	ErrReversalExists          = errors.New("postgres: referenced transaction already has a processed reversal")
 	ErrLedgerEntryExists       = errors.New("postgres: ledger entry already exists for this wallet and transaction")
 	ErrIntegrity               = errors.New("postgres: integrity rule violated")
+	ErrDuplicateEvent          = errors.New("postgres: outbox event id already exists")
+	ErrInvalidEvent            = errors.New("postgres: invalid outbox event")
+	ErrLeaseLost               = errors.New("postgres: outbox lease was lost to another publisher")
 )
 
 // Nomes de constraints do schema (migrations 1 a 4) que viram erros tipados.
@@ -36,6 +39,7 @@ const (
 	cTxWalletFK             = "wager_tx_wallet_fk"
 	cLedgerWalletTx         = "ledger_wallet_transaction_uk"
 	cLedgerWalletVersion    = "ledger_wallet_version_uk"
+	cOutboxPK               = "outbox_events_pkey"
 	sqlStateUniqueViolation = "23505"
 	sqlStateFKViolation     = "23503"
 )
@@ -67,6 +71,8 @@ func mapError(err error) error {
 			return wrap(ErrLedgerEntryExists)
 		case cLedgerWalletVersion:
 			return wrap(ErrVersionConflict)
+		case cOutboxPK:
+			return wrap(ErrDuplicateEvent)
 		}
 	case sqlStateFKViolation:
 		if pe.ConstraintName == cTxWalletFK {

@@ -9,5 +9,7 @@
     <file url="file://$PROJECT_DIR$/migrations/000003_create_wallet_ledger_entries.up.sql" value="8c63c03a-8a46-44d3-98e1-ff4871ef7fa5" />
     <file url="file://$PROJECT_DIR$/migrations/000004_create_inbox_outbox.down.sql" value="8c63c03a-8a46-44d3-98e1-ff4871ef7fa5" />
     <file url="file://$PROJECT_DIR$/migrations/000004_create_inbox_outbox.up.sql" value="8c63c03a-8a46-44d3-98e1-ff4871ef7fa5" />
+    <file url="file://$PROJECT_DIR$/migrations/000005_outbox_aggregate_order_idx.down.sql" value="8c63c03a-8a46-44d3-98e1-ff4871ef7fa5" />
+    <file url="file://$PROJECT_DIR$/migrations/000005_outbox_aggregate_order_idx.up.sql" value="8c63c03a-8a46-44d3-98e1-ff4871ef7fa5" />
   </component>
 </project>

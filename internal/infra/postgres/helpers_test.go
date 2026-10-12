@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PBelle451/backend-challenge-go/migrations"
+	"github.com/PBelle451/backend-challenge-go/internal/infra/postgres"
 	"github.com/google/uuid"
 
 	"github.com/PBelle451/backend-challenge-go/internal/domain/money"
@@ -31,7 +31,7 @@ func brl(t testing.TB, amount string) money.Money {
 func openWallet(t testing.TB, env *testEnv, initial string) (walletID, playerID uuid.UUID) {
 	t.Helper()
 	walletID, playerID = uuid.New(), uuid.New()
-	err := env.TM.Do(context.Background(), func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(context.Background(), func(ctx context.Context, r postgres.Repositories) error {
 		openingTx := uuid.New()
 		w, entry, err := wallet.Open(wallet.OpenParams{
 			WalletID: walletID, PlayerID: playerID, InitialBalance: brl(t, initial),
@@ -96,7 +96,7 @@ type betResult struct {
 // o que provaria um deadlock se o lock da carteira conflitasse com as chaves estrangeiras.
 func placeBet(env *testEnv, walletID, playerID uuid.UUID, extID, amount string, insertFirst bool, tt testing.TB) (betResult, error) {
 	var res betResult
-	err := env.TM.Do(context.Background(), func(ctx context.Context, r migrations.Repositories) error {
+	err := env.TM.Do(context.Background(), func(ctx context.Context, r postgres.Repositories) error {
 		res = betResult{}
 		tx := newExternal(tt, uuid.New(), wager.KindBet, walletID, playerID, extID, amount, "", t0)
 		var w *wallet.Wallet
